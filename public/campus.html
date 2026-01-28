@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BDE PSH">
+  <meta name="color-scheme" content="light dark">
+
+  <link rel="manifest" href="manifest-public.json">
+
+  <title>BDE PSH SUP – Les Campus</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Nos Campus</h1>
+  <p>Deux campus, un même esprit</p>
+</header>
+
+<main class="campus-grid" id="campusGrid">
+  <!-- Campus injectés par JS -->
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">
+    <span>🏠</span><small>Accueil</small>
+  </a>
+  <a href="actus.html" class="nav-item">
+    <span>📰</span><small>Actus</small>
+  </a>
+  <a href="evenements.html" class="nav-item">
+    <span>📅</span><small>Events</small>
+  </a>
+  <a href="bde.html" class="nav-item">
+    <span>🎉</span><small>BDE</small>
+  </a>
+</nav>
+
+<button id="contactBde" class="btn-contact-floating">✉️</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE (PUBLIC READ)
+=============================== */
+const supabaseUrl = 'https://yswqdhoscahtylemhipt.supabase.co';
+const supabaseKey = 'TA_CLE_ANON';
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ===============================
+   📍 LOAD CAMPUS
+=============================== */
+async function loadCampus() {
+  const { data, error } = await supabaseClient
+    .from('campus')
+    .select('*')
+    .order('title');
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const container = document.getElementById('campusGrid');
+  container.innerHTML = '';
+
+  data.forEach(campus => {
+    container.innerHTML += `
+      <section class="campus-column">
+        <h2 class="campus-title">${campus.title}</h2>
+        ${buildCard('🏢', 'Adresse & accès', campus.address_content)}
+        ${buildCard('🎓', 'Vie étudiante & services', campus.life_content)}
+        ${buildCard('📚', 'Formations proposées', campus.formations_content)}
+        ${buildCard('⏰', 'Horaires & contact', campus.hours_content)}
+        ${campus.maps_embed_url ? `
+          <div class="card map-card">
+            <iframe src="${campus.maps_embed_url}" loading="lazy"></iframe>
+          </div>
+        ` : ''}
+      </section>
+    `;
+  });
+}
+
+function buildCard(icon, title, content) {
+  if (!content) return '';
+  return `
+    <div class="card">
+      <span class="card-icon">${icon}</span>
+      <h3>${title}</h3>
+      <ul class="campus-list">
+        ${content
+          .split('\n')
+          .filter(l => l.trim())
+          .map(l => `<li>${l}</li>`)
+          .join('')}
+      </ul>
+    </div>
+  `;
+}
+
+/* ===============================
+   🚀 INIT
+=============================== */
+loadCampus();
+
+/* ===============================
+   📋 CONTACT
+=============================== */
+document.getElementById('contactBde').onclick = () => {
+  location.href = 'contact-bde.html';
+};
+
+/* ===============================
+   🔧 SERVICE WORKER
+=============================== */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw-public.js")
+    .then(reg => console.log("SW public enregistré"))
+    .catch(err => console.error("Erreur SW", err));
+}
+</script>
+
+</body>
+</html>
