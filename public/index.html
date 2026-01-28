@@ -94,6 +94,12 @@ notifBtn.addEventListener("click", async () => {
     alert("Notifications activées ✅");
   }
 });
+
+  if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw-public.js")
+    .then(reg => console.log("SW public enregistré", reg))
+    .catch(err => console.error("Erreur SW", err));
+}
 </script>
 
 </body>
