@@ -1,44 +1,23 @@
-const CACHE_NAME = "bde-psh-cache-v1";
-
-const urlsToCache = [
-  "./",
-  "index.html",
-  "style.css",
-  "manifest-public.json",
-  "icons/icon-192.png",
-  "icons/icon-512.png"
-];
-
 self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
-  );
+  console.log("SW installé");
   self.skipWaiting();
 });
 
 self.addEventListener("activate", event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) return caches.delete(key);
-        })
-      )
-    )
-  );
+  console.log("SW activé");
   self.clients.claim();
 });
 
 self.addEventListener("fetch", event => {
-  event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
-  );
+  event.respondWith(fetch(event.request));
 });
 
 /* 🔔 PUSH */
 self.addEventListener("push", event => {
   let data = {};
-  if (event.data) data = event.data.json();
+  if (event.data) {
+    data = event.data.json();
+  }
 
   const title = data.title || "BDE PSH";
   const options = {
@@ -50,7 +29,9 @@ self.addEventListener("push", event => {
     }
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
 });
 
 self.addEventListener("notificationclick", event => {
