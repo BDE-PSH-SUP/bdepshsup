@@ -82,6 +82,12 @@ document.getElementById('logout').addEventListener('click', async () => {
   await supabaseClient.auth.signOut();
   window.location.href = 'index.html';
 });
+
+  if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw-admin.js")
+    .then(reg => console.log("SW admin enregistré"))
+    .catch(err => console.error("Erreur SW admin", err));
+}
 </script>
 
 </body>
