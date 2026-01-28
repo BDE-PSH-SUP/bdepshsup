@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin BDE PSH">
+
+  <link rel="manifest" href="manifest-admin.json">
+  <title>Admin – BDE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../public/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Admin – BDE</h1>
+  <p>Gestion des membres du BDE</p>
+</header>
+
+<center>
+  <a href="admin-dashboard.html" class="btn-secondary">⬅ Retour dashboard</a>
+</center>
+
+<main class="admin-grid">
+
+  <!-- FORM -->
+  <form id="bdeForm" class="admin-form">
+    <input type="hidden" id="editingId">
+
+    <label>Prénom</label>
+    <input type="text" id="prenom" required>
+
+    <label>Nom</label>
+    <input type="text" id="nom" required>
+
+    <label>Rôle</label>
+    <select id="roleSelect" required>
+      <option value="">— Sélectionner un rôle —</option>
+      <option value="president">Président</option>
+      <option value="presidente">Présidente</option>
+      <option value="vice_president">Vice-président</option>
+      <option value="vice_presidente">Vice-présidente</option>
+      <option value="tresorier">Trésorier</option>
+      <option value="tresoriere">Trésorière</option>
+      <option value="responsable_communication">Responsable communication</option>
+      <option value="responsable_securite">Responsable sécurité</option>
+      <option value="responsable_partenariats">Responsable partenariats</option>
+      <option value="secretaire">Secrétaire</option>
+      <option value="membre_actif">Membre actif</option>
+    </select>
+
+    <label>Emoji</label>
+    <input type="text" id="emoji" readonly placeholder="— automatique —">
+
+    <label>Classe</label>
+    <input type="text" id="classe" required>
+
+    <label>Ordre d’affichage</label>
+    <input type="number" id="order_index" required>
+
+    <label>Photo (optionnelle)</label>
+    <input type="file" id="photo" accept="image/*">
+
+    <img id="preview" class="image-preview" style="display:none;">
+
+    <button type="submit" class="btn-primary">💾 Enregistrer</button>
+    <button type="button" id="cancelEdit" class="btn-secondary" style="display:none;">
+      ❌ Annuler
+    </button>
+  </form>
+
+  <!-- LIST -->
+  <section>
+    <h2>Membres</h2>
+    <div id="bdeList"></div>
+  </section>
+
+</main>
+
+<button id="logout" class="btn-logout-floating">🚪</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE
+=============================== */
+const supabaseClient = supabase.createClient(
+  "https://yswqdhoscahtylemhipt.supabase.co",
+  "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
+  { auth: { persistSession: true } }
+);
+
+/* ===============================
+   🔒 AUTH
+=============================== */
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) location.href = "index.html";
+})();
+
+/* ===============================
+   🧠 ROLE → EMOJI
+=============================== */
+const roleEmojiMap = {
+  president: "⭐",
+  presidente: "⭐",
+  vice_president: "✨",
+  vice_presidente: "✨",
+  tresorier: "💰",
+  tresoriere: "💰",
+  responsable_communication: "📣",
+  responsable_securite: "🛡️",
+  responsable_partenariats: "🤝",
+  secretaire: "📝",
+  membre_actif: "🎉"
+};
+
+/* ===============================
+   🖼️ PREVIEW
+=============================== */
+const photoInput = document.getElementById("photo");
+const preview = document.getElementById("preview");
+
+photoInput.addEventListener("change", () => {
+  if (!photoInput.files[0]) return;
+  preview.src = URL.createObjectURL(photoInput.files[0]);
+  preview.style.display = "block";
+});
+
+/* ===============================
+   ☁️ UPLOAD PHOTO
+=============================== */
+async function uploadPhoto(file) {
+  const ext = file.name.split(".").pop();
+  const path = `bde/${Date.now()}.${ext}`;
+
+  const { error } = await supabaseClient.storage.from("bde").upload(path, file);
+  if (error) return null;
+
+  return supabaseClient.storage.from("bde").getPublicUrl(path).data.publicUrl;
+}
+
+/* ===============================
+   ROLE → EMOJI AUTO
+=============================== */
+const roleSelect = document.getElementById("roleSelect");
+const emojiInput = document.getElementById("emoji");
+
+roleSelect.addEventListener("change", () => {
+  emojiInput.value = roleEmojiMap[roleSelect.value] || "";
+});
+
+/* ===============================
+   SUBMIT
+=============================== */
+document.getElementById("bdeForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const id = editingId.value;
+  let photoUrl = null;
+
+  if (id) {
+    const { data } = await supabaseClient
+      .from("bde")
+      .select("photo_url")
+      .eq("id", id)
+      .single();
+    photoUrl = data?.photo_url || null;
+  }
+
+  if (photoInput.files.length) {
+    const uploaded = await uploadPhoto(photoInput.files[0]);
+    if (uploaded) photoUrl = uploaded;
+  }
+
+  const member = {
+    prenom: prenom.value.trim(),
+    nom: nom.value.trim(),
+    role: roleSelect.options[roleSelect.selectedIndex].text,
+    emoji: emojiInput.value,
+    classe: classe.value.trim(),
+    order_index: Number(order_index.value),
+    photo_url: photoUrl
+  };
+
+  const query = id
+    ? supabaseClient.from("bde").update(member).eq("id", id)
+    : supabaseClient.from("bde").insert(member);
+
+  const { error } = await query;
+  if (!error) {
+    resetForm();
+    loadBDE();
+  }
+});
+
+/* ===============================
+   LOAD BDE
+=============================== */
+async function loadBDE() {
+  const { data } = await supabaseClient
+    .from("bde")
+    .select("*")
+    .order("order_index");
+
+  const list = document.getElementById("bdeList");
+  list.innerHTML = "";
+
+  data.forEach(m => {
+    list.innerHTML += `
+      <div class="admin-actu-card">
+        <strong>${m.emoji} ${m.role}</strong><br>
+        ${m.prenom} ${m.nom}<br>
+        <small>${m.classe || ""}</small>
+        <div class="admin-actions">
+          <button onclick="editMember('${m.id}')">✏️</button>
+          <button onclick="removeMember('${m.id}')">🗑️</button>
+        </div>
+      </div>`;
+  });
+}
+loadBDE();
+
+/* ===============================
+   EDIT
+=============================== */
+window.editMember = async id => {
+  const { data } = await supabaseClient
+    .from("bde")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  editingId.value = data.id;
+  prenom.value = data.prenom;
+  nom.value = data.nom;
+  classe.value = data.classe || "";
+  order_index.value = data.order_index;
+
+  const opt = [...roleSelect.options].find(o => o.text === data.role);
+  roleSelect.value = opt ? opt.value : "";
+  emojiInput.value = roleEmojiMap[roleSelect.value] || data.emoji || "";
+
+  preview.src = data.photo_url || "";
+  preview.style.display = data.photo_url ? "block" : "none";
+
+  cancelEdit.style.display = "block";
+};
+
+/* ===============================
+   DELETE
+=============================== */
+window.removeMember = async id => {
+  if (!confirm("Supprimer ce membre ?")) return;
+  await supabaseClient.from("bde").delete().eq("id", id);
+  loadBDE();
+};
+
+/* ===============================
+   RESET
+=============================== */
+function resetForm() {
+  bdeForm.reset();
+  editingId.value = "";
+  emojiInput.value = "";
+  preview.style.display = "none";
+  photoInput.value = "";
+  cancelEdit.style.display = "none";
+}
+
+/* ===============================
+   LOGOUT
+=============================== */
+logout.addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  location.href = "index.html";
+});
+</script>
+
+</body>
+</html>
