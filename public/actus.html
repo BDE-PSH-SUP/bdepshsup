@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BDE PSH">
+
+  <link rel="manifest" href="manifest-public.json">
+
+  <title>BDE PSH SUP – Actualités</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Actualités</h1>
+  <p>La vie du campus au quotidien</p>
+</header>
+
+<main class="actus-grid" id="actusContainer">
+  <!-- Les actus Supabase s’afficheront ici -->
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">
+    <span>🏠</span><small>Accueil</small>
+  </a>
+  <a href="evenements.html" class="nav-item">
+    <span>📅</span><small>Events</small>
+  </a>
+  <a href="campus.html" class="nav-item">
+    <span>🏫</span><small>Campus</small>
+  </a>
+  <a href="bde.html" class="nav-item">
+    <span>🎉</span><small>BDE</small>
+  </a>
+</nav>
+
+<div id="lightbox" class="lightbox" style="display:none;">
+  <span class="lightbox-close">✕</span>
+  <img id="lightboxImage">
+</div>
+
+<button id="contactBde" class="btn-contact-floating">✉️</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE CONFIG (PUBLIC)
+=============================== */
+const supabaseUrl = 'https://yswqdhoscahtylemhipt.supabase.co';
+const supabaseKey = 'TA_CLE_ANON';
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ===============================
+   🧠 UTILS
+=============================== */
+function getBadgeClass(category) {
+  if (category === 'Événement') return 'badge badge-event';
+  if (category === 'Info campus') return 'badge badge-info';
+  return 'badge badge-bde';
+}
+
+function escapeHtml(str = '') {
+  return str.replace(/[&<>"']/g, m => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[m]);
+}
+
+/* ===============================
+   📢 CHARGER LES ACTUS PUBLIQUES
+=============================== */
+async function loadActus() {
+  const { data, error } = await supabaseClient
+    .from('actus')
+    .select('*')
+    .eq('published', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Erreur chargement actus :', error);
+    return;
+  }
+
+  const container = document.getElementById('actusContainer');
+  container.innerHTML = '';
+
+  data.forEach(actu => {
+    container.innerHTML += `
+      <article class="actus-card">
+        <div class="actus-header">
+          <span class="${getBadgeClass(actu.category)}">
+            ${escapeHtml(actu.category)}
+          </span>
+          <span class="date">
+            ${new Date(actu.created_at).toLocaleDateString('fr-FR')}
+          </span>
+        </div>
+
+        ${actu.image_url ? `
+          <img
+            src="${actu.image_url}"
+            alt="${escapeHtml(actu.title)}"
+            class="actus-image clickable-image"
+            loading="lazy"
+          />
+        ` : ''}
+
+        <h2>${escapeHtml(actu.title)}</h2>
+
+        <p class="actus-resume">
+          ${escapeHtml(actu.summary)}
+        </p>
+
+        <div class="actus-content">
+          <p>${escapeHtml(actu.content)}</p>
+        </div>
+
+        <button class="cta toggle-actu">Lire plus</button>
+      </article>
+    `;
+  });
+
+  setupToggle();
+}
+
+/* ===============================
+   📖 OUVRIR / FERMER UNE ACTU
+=============================== */
+function setupToggle() {
+  document.querySelectorAll('.toggle-actu').forEach(button => {
+    button.addEventListener('click', () => {
+      const card = button.closest('.actus-card');
+      const isOpen = card.classList.toggle('open');
+      button.textContent = isOpen ? 'Réduire' : 'Lire plus';
+    });
+  });
+}
+
+/* ===============================
+   🖼️ LIGHTBOX
+=============================== */
+const lightbox = document.getElementById('lightbox');
+const lightboxImage = document.getElementById('lightboxImage');
+const closeBtn = document.querySelector('.lightbox-close');
+
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('clickable-image')) {
+    lightboxImage.src = e.target.src;
+    lightbox.style.display = 'flex';
+  }
+});
+
+closeBtn.addEventListener('click', closeLightbox);
+lightbox.addEventListener('click', e => {
+  if (e.target === lightbox) closeLightbox();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeLightbox();
+});
+
+function closeLightbox() {
+  lightbox.style.display = 'none';
+  lightboxImage.src = '';
+}
+
+/* ===============================
+   🚀 INIT
+=============================== */
+loadActus();
+
+/* ===============================
+   📋 CONTACT
+=============================== */
+document.getElementById('contactBde').addEventListener('click', () => {
+  window.location.href = 'contact-bde.html';
+});
+
+/* ===============================
+   🔧 SERVICE WORKER
+=============================== */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw-public.js")
+    .then(reg => console.log("SW public enregistré"))
+    .catch(err => console.error("Erreur SW", err));
+}
+</script>
+
+</body>
+</html>
