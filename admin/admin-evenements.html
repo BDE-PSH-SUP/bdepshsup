@@ -162,15 +162,20 @@ document.getElementById("eventForm").addEventListener("submit", async (e) => {
   /* 🔔 NOTIFICATION SI NOUVEL EVENT */
   if (isNew) {
     try {
-      await fetch("https://yswqdhoscahtylemhipt.supabase.co/functions/v1/send-push", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "📅 Nouvel événement",
-          body: event.title,
-          url: "https://bde-psh-sup.github.io/bdepshsup/public/evenements.html"
-        })
-      });
+     await fetch("https://yswqdhoscahtylemhipt.supabase.co/functions/v1/send-push", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "apikey": "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
+    "Authorization": "Bearer sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf"
+  },
+  body: JSON.stringify({
+    title: "📰 Nouvelle actu",
+    body: actu.title,
+    url: "https://bde-psh-sup.github.io/bdepshsup/public/actus.html"
+  })
+});
+
     } catch (err) {
       console.error("Erreur push", err);
     }
