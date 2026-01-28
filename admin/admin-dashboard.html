@@ -55,6 +55,14 @@
     <p>Présentation, membres, missions</p>
   </a>
 
+    <!-- 📲 Installer l’app admin -->
+  <button id="installBtn" class="admin-card hidden">
+    <span class="icon">📲</span>
+    <h2>Installer l’app admin</h2>
+    <p>Installer le dashboard admin sur l’appareil</p>
+  </button>
+
+
 </main>
 
 <button id="logout" class="btn-logout-floating">🚪</button>
@@ -95,6 +103,27 @@ if ("serviceWorker" in navigator) {
     .then(reg => console.log("SW admin enregistré"))
     .catch(err => console.error("Erreur SW admin", err));
 }
+
+/* ===============================
+   📲 INSTALL PWA ADMIN
+=============================== */
+let deferredPrompt;
+const installBtn = document.getElementById("installBtn");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.classList.remove("hidden");
+});
+
+installBtn.addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.classList.add("hidden");
+});
+
 </script>
 
 </body>
