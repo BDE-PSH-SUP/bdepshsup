@@ -15,11 +15,9 @@
   <title>Admin – Actualités</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- CSS -->
   <link rel="stylesheet" href="../public/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Icons -->
   <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
@@ -78,32 +76,20 @@
 <button id="logout" class="btn-logout-floating">🚪</button>
 
 <script>
-/* ===============================
-   🔐 SUPABASE
-=============================== */
 const supabaseClient = supabase.createClient(
   "https://yswqdhoscahtylemhipt.supabase.co",
   "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
   { auth: { persistSession: true } }
 );
 
-/* ===============================
-   🔒 PROTECTION ADMIN
-=============================== */
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) location.href = "index.html";
 })();
 
-/* ===============================
-   🧠 STATE
-=============================== */
 let editingActuId = null;
 let imageDeleted = false;
 
-/* ===============================
-   🖼️ IMAGE PREVIEW
-=============================== */
 const imageInput = document.getElementById("image");
 const imagePreview = document.getElementById("imagePreview");
 const deleteImageBtn = document.getElementById("deleteImageBtn");
@@ -115,38 +101,21 @@ imageInput.addEventListener("change", () => {
   imagePreview.style.display = "block";
 });
 
-/* ===============================
-   ☁️ UPLOAD IMAGE
-=============================== */
 async function uploadImage(file) {
   const ext = file.name.split(".").pop();
-  const fileName = `${Date.now()}.${ext}`;
-  const filePath = `actus/${fileName}`;
-
-  const { error } = await supabaseClient.storage
-    .from("actus")
-    .upload(filePath, file);
-
-  if (error) return null;
-
-  return supabaseClient.storage
-    .from("actus")
-    .getPublicUrl(filePath).data.publicUrl;
+  const filePath = `actus/${Date.now()}.${ext}`;
+  await supabaseClient.storage.from("actus").upload(filePath, file);
+  return supabaseClient.storage.from("actus").getPublicUrl(filePath).data.publicUrl;
 }
 
-/* ===============================
-   🗑️ DELETE IMAGE STORAGE
-=============================== */
 async function deleteImageFromStorage(imageUrl) {
   if (!imageUrl) return;
   const path = imageUrl.split("/storage/v1/object/public/actus/")[1];
-  if (!path) return;
-
   await supabaseClient.storage.from("actus").remove([`actus/${path}`]);
 }
 
 /* ===============================
-   📢 SUBMIT ACTU
+   📢 SUBMIT ACTU + NOTIF
 =============================== */
 document.getElementById("actuForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -172,6 +141,8 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
     image_url: imageUrl
   };
 
+  const isNew = !editingActuId;
+
   const query = editingActuId
     ? supabaseClient.from("actus").update(actu).eq("id", editingActuId)
     : supabaseClient.from("actus").insert({ ...actu, published: true });
@@ -179,12 +150,25 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
   const { error } = await query;
   if (error) return alert("Erreur lors de l’enregistrement");
 
+  /* 🔔 NOTIFICATION PUSH SI NOUVELLE ACTU */
+  if (isNew) {
+    await fetch("https://yswqdhoscahtylemhipt.supabase.co/functions/v1/send-push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "📰 Nouvelle actu",
+        body: actu.title,
+        url: "https://bde-psh-sup.github.io/bdepshsup/public/actus.html"
+      })
+    });
+  }
+
   resetForm();
   loadAdminActus();
 });
 
 /* ===============================
-   📋 LOAD ACTUS
+   LOAD ACTUS
 =============================== */
 async function loadAdminActus() {
   const { data } = await supabaseClient
@@ -210,15 +194,8 @@ async function loadAdminActus() {
 }
 loadAdminActus();
 
-/* ===============================
-   ✏️ EDIT ACTU
-=============================== */
 window.editActu = async function(id) {
-  const { data } = await supabaseClient
-    .from("actus")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data } = await supabaseClient.from("actus").select("*").eq("id", id).single();
 
   title.value = data.title;
   category.value = data.category;
@@ -234,31 +211,20 @@ window.editActu = async function(id) {
     deleteImageBtn.style.display = "block";
   }
 
-  document.getElementById("cancelEdit").style.display = "block";
+  cancelEdit.style.display = "block";
   document.querySelector(".btn-primary").textContent = "💾 Mettre à jour";
 };
 
-/* ===============================
-   🗑️ DELETE ACTU
-=============================== */
 window.deleteActu = async function(id) {
   if (!confirm("Supprimer cette actu ?")) return;
 
-  const { data } = await supabaseClient
-    .from("actus")
-    .select("image_url")
-    .eq("id", id)
-    .single();
-
+  const { data } = await supabaseClient.from("actus").select("image_url").eq("id", id).single();
   await deleteImageFromStorage(data.image_url);
   await supabaseClient.from("actus").delete().eq("id", id);
 
   loadAdminActus();
 };
 
-/* ===============================
-   ❌ RESET FORM
-=============================== */
 function resetForm() {
   actuForm.reset();
   editingActuId = null;
@@ -269,9 +235,6 @@ function resetForm() {
   document.querySelector(".btn-primary").textContent = "📢 Publier";
 }
 
-/* ===============================
-   🚪 LOGOUT
-=============================== */
 logout.addEventListener("click", async () => {
   await supabaseClient.auth.signOut();
   location.href = "index.html";
