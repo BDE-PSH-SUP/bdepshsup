@@ -84,6 +84,7 @@ const supabaseClient = supabase.createClient(
   { auth: { persistSession: true } }
 );
 
+/* 🔒 PROTECTION */
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) location.href = "index.html";
@@ -107,13 +108,16 @@ async function uploadEventImage(file) {
   const ext = file.name.split(".").pop();
   const filePath = `events/${Date.now()}.${ext}`;
 
-  await supabaseClient.storage.from("evenements").upload(filePath, file);
+  const { error } = await supabaseClient.storage.from("evenements").upload(filePath, file);
+  if (error) return null;
+
   return supabaseClient.storage.from("evenements").getPublicUrl(filePath).data.publicUrl;
 }
 
 async function deleteEventImage(imageUrl) {
   if (!imageUrl) return;
   const path = imageUrl.split("/storage/v1/object/public/evenements/")[1];
+  if (!path) return;
   await supabaseClient.storage.from("evenements").remove([`events/${path}`]);
 }
 
@@ -133,7 +137,7 @@ document.getElementById("eventForm").addEventListener("submit", async (e) => {
       .select("image_url")
       .eq("id", editingEventId)
       .single();
-    imageUrl = data.image_url;
+    imageUrl = data?.image_url || null;
   }
 
   const event = {
@@ -157,15 +161,19 @@ document.getElementById("eventForm").addEventListener("submit", async (e) => {
 
   /* 🔔 NOTIFICATION SI NOUVEL EVENT */
   if (isNew) {
-    await fetch("https://yswqdhoscahtylemhipt.supabase.co/functions/v1/send-push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "📅 Nouvel événement",
-        body: event.title,
-        url: "https://bde-psh-sup.github.io/bdepshsup/public/evenements.html"
-      })
-    });
+    try {
+      await fetch("https://yswqdhoscahtylemhipt.supabase.co/functions/v1/send-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "📅 Nouvel événement",
+          body: event.title,
+          url: "https://bde-psh-sup.github.io/bdepshsup/public/evenements.html"
+        })
+      });
+    } catch (err) {
+      console.error("Erreur push", err);
+    }
   }
 
   resetForm();
@@ -187,7 +195,7 @@ async function loadEvents() {
   data.forEach(ev => {
     container.innerHTML += `
       <div class="admin-actu-card">
-        <h3>${ev.title}</h3>
+        <h3>${escapeHtml(ev.title)}</h3>
         <small>📅 ${new Date(ev.event_date).toLocaleDateString("fr-FR")}</small>
         <div>
           <button onclick="editEvent('${ev.id}')">✏️</button>
@@ -207,7 +215,6 @@ window.editEvent = async id => {
   event_time.value = data.event_time || "";
   event_location.value = data.location;
   helloasso_url.value = data.helloasso_url || "";
-
   editingEventId = id;
 };
 
@@ -224,11 +231,22 @@ function resetForm() {
   deleteImageBtn.style.display = "none";
 }
 
+function escapeHtml(str = "") {
+  return str.replace(/[&<>"']/g, m => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[m]);
+}
+
 logout.onclick = async () => {
   await supabaseClient.auth.signOut();
   location.href = "index.html";
 };
 </script>
+
 
 </body>
 </html>
