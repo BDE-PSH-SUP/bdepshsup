@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BDE PSH">
+
+  <link rel="manifest" href="/manifest.json">
+  <title>BDE PSH SUP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<header class="header">
+  <h1>BDE PSH SUP</h1>
+  <p>Actualités & événements étudiants</p>
+</header>
+
+<main class="admin-grid">
+
+  <button id="installBtn" class="btn-primary" style="display:none;">
+    📲 Installer l’application
+  </button>
+
+  <button id="notifBtn" class="btn-primary">
+    🔔 Activer les notifications
+  </button>
+
+</main>
+
+<script>
+/* ===============================
+   🔗 SUPABASE
+=============================== */
+const supabaseUrl = 'https://yswqdhoscahtylemhipt.supabase.co';
+const supabaseKey = 'TA_CLE_ANON'; // garde ta clé anon ici
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ===============================
+   📲 INSTALL PWA
+=============================== */
+let deferredPrompt;
+const installBtn = document.getElementById("installBtn");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = "block";
+});
+
+installBtn.addEventListener("click", async () => {
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.style.display = "none";
+});
+
+/* ===============================
+   🔔 NOTIFICATIONS
+=============================== */
+const notifBtn = document.getElementById("notifBtn");
+
+notifBtn.addEventListener("click", async () => {
+  const permission = await Notification.requestPermission();
+
+  if (permission !== "granted") {
+    alert("Notifications refusées ❌");
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: "TA_CLE_VAPID_PUBLIQUE"
+  });
+
+  const { error } = await supabaseClient
+    .from("push_subscriptions")
+    .insert([{ subscription: subscription }]);
+
+  if (error) {
+    console.error(error);
+    alert("Erreur enregistrement notification");
+  } else {
+    alert("Notifications activées ✅");
+  }
+});
+</script>
+
+</body>
+</html>
