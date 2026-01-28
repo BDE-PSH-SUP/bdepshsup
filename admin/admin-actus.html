@@ -82,6 +82,7 @@ const supabaseClient = supabase.createClient(
   { auth: { persistSession: true } }
 );
 
+/* 🔒 PROTECTION */
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) location.href = "index.html";
@@ -104,13 +105,15 @@ imageInput.addEventListener("change", () => {
 async function uploadImage(file) {
   const ext = file.name.split(".").pop();
   const filePath = `actus/${Date.now()}.${ext}`;
-  await supabaseClient.storage.from("actus").upload(filePath, file);
+  const { error } = await supabaseClient.storage.from("actus").upload(filePath, file);
+  if (error) return null;
   return supabaseClient.storage.from("actus").getPublicUrl(filePath).data.publicUrl;
 }
 
 async function deleteImageFromStorage(imageUrl) {
   if (!imageUrl) return;
   const path = imageUrl.split("/storage/v1/object/public/actus/")[1];
+  if (!path) return;
   await supabaseClient.storage.from("actus").remove([`actus/${path}`]);
 }
 
@@ -130,7 +133,7 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
       .select("image_url")
       .eq("id", editingActuId)
       .single();
-    imageUrl = data.image_url;
+    imageUrl = data?.image_url || null;
   }
 
   const actu = {
@@ -152,15 +155,19 @@ document.getElementById("actuForm").addEventListener("submit", async (e) => {
 
   /* 🔔 NOTIFICATION PUSH SI NOUVELLE ACTU */
   if (isNew) {
-    await fetch("https://yswqdhoscahtylemhipt.supabase.co/functions/v1/send-push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: "📰 Nouvelle actu",
-        body: actu.title,
-        url: "https://bde-psh-sup.github.io/bdepshsup/public/actus.html"
-      })
-    });
+    try {
+      await fetch("https://yswqdhoscahtylemhipt.supabase.co/functions/v1/send-push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "📰 Nouvelle actu",
+          body: actu.title,
+          url: "https://bde-psh-sup.github.io/bdepshsup/public/actus.html"
+        })
+      });
+    } catch (err) {
+      console.error("Erreur push", err);
+    }
   }
 
   resetForm();
@@ -182,8 +189,8 @@ async function loadAdminActus() {
   data.forEach(actu => {
     container.innerHTML += `
       <div class="admin-actu-card" data-id="${actu.id}">
-        <h3>${actu.title}</h3>
-        <small>${actu.category}</small>
+        <h3>${escapeHtml(actu.title)}</h3>
+        <small>${escapeHtml(actu.category)}</small>
         <div class="admin-actions">
           <button onclick="editActu('${actu.id}')">✏️</button>
           <button onclick="deleteActu('${actu.id}')">🗑️</button>
@@ -194,6 +201,9 @@ async function loadAdminActus() {
 }
 loadAdminActus();
 
+/* ===============================
+   ✏️ EDIT
+=============================== */
 window.editActu = async function(id) {
   const { data } = await supabaseClient.from("actus").select("*").eq("id", id).single();
 
@@ -215,6 +225,9 @@ window.editActu = async function(id) {
   document.querySelector(".btn-primary").textContent = "💾 Mettre à jour";
 };
 
+/* ===============================
+   🗑️ DELETE
+=============================== */
 window.deleteActu = async function(id) {
   if (!confirm("Supprimer cette actu ?")) return;
 
@@ -225,6 +238,9 @@ window.deleteActu = async function(id) {
   loadAdminActus();
 };
 
+/* ===============================
+   RESET
+=============================== */
 function resetForm() {
   actuForm.reset();
   editingActuId = null;
@@ -235,11 +251,25 @@ function resetForm() {
   document.querySelector(".btn-primary").textContent = "📢 Publier";
 }
 
+function escapeHtml(str = "") {
+  return str.replace(/[&<>"']/g, m => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[m]);
+}
+
+/* ===============================
+   LOGOUT
+=============================== */
 logout.addEventListener("click", async () => {
   await supabaseClient.auth.signOut();
   location.href = "index.html";
 });
 </script>
+
 
 </body>
 </html>
