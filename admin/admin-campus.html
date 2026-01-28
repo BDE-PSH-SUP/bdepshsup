@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin BDE PSH">
+
+  <link rel="manifest" href="manifest-admin.json">
+  <title>Admin – Campus</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../public/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Admin – Campus</h1>
+  <p>Gestion des informations campus</p>
+</header>
+
+<center>
+  <a href="admin-dashboard.html" class="btn-secondary">
+    ⬅ Retour dashboard
+  </a>
+</center>
+
+<main class="admin-grid">
+
+  <select id="campusSelect" class="admin-form">
+    <option value="">— Sélectionner un campus —</option>
+  </select>
+
+  <form id="campusForm" class="admin-form" style="display:none;">
+
+    <label>Titre du campus</label>
+    <input type="text" id="title">
+
+    <label>Adresse & accès</label>
+    <textarea id="address_content" rows="4"></textarea>
+
+    <label>Vie étudiante & services</label>
+    <textarea id="life_content" rows="4"></textarea>
+
+    <label>Formations proposées</label>
+    <textarea id="formations_content" rows="6"></textarea>
+
+    <label>Horaires & contact</label>
+    <textarea id="hours_content" rows="4"></textarea>
+    
+    <label>Google Maps (iframe URL)</label>
+    <input type="url" id="maps_embed_url"
+           placeholder="https://www.google.com/maps/embed?...">
+
+    <button class="btn-primary">💾 Enregistrer</button>
+  </form>
+</main>
+
+<button id="logout" class="btn-logout-floating">🚪</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE
+=============================== */
+const supabaseClient = supabase.createClient(
+  "https://yswqdhoscahtylemhipt.supabase.co",
+  "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
+  { auth: { persistSession: true } }
+);
+
+let currentCampusId = null;
+
+/* ===============================
+   🔒 PROTECTION
+=============================== */
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) location.href = "index.html";
+})();
+
+/* ===============================
+   📋 LOAD CAMPUS LIST
+=============================== */
+async function loadCampusList() {
+  const { data, error } = await supabaseClient
+    .from("campus")
+    .select("id, title")
+    .order("title");
+
+  if (error || !data) {
+    console.error(error);
+    return;
+  }
+
+  const select = document.getElementById("campusSelect");
+  select.innerHTML = '<option value="">— Sélectionner un campus —</option>';
+
+  data.forEach(c => {
+    select.innerHTML += `<option value="${c.id}">${c.title}</option>`;
+  });
+}
+loadCampusList();
+
+/* ===============================
+   📍 LOAD CAMPUS DATA
+=============================== */
+document.getElementById("campusSelect").addEventListener("change", async (e) => {
+  const id = e.target.value;
+  if (!id) {
+    document.getElementById("campusForm").style.display = "none";
+    currentCampusId = null;
+    return;
+  }
+
+  const { data, error } = await supabaseClient
+    .from("campus")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  currentCampusId = id;
+  document.getElementById("campusForm").style.display = "block";
+
+  title.value = data.title || "";
+  address_content.value = data.address_content || "";
+  life_content.value = data.life_content || "";
+  formations_content.value = data.formations_content || "";
+  hours_content.value = data.hours_content || "";
+  maps_embed_url.value = data.maps_embed_url || "";
+});
+
+/* ===============================
+   💾 SAVE
+=============================== */
+document.getElementById("campusForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  if (!currentCampusId) {
+    alert("Veuillez sélectionner un campus");
+    return;
+  }
+
+  const { error } = await supabaseClient
+    .from("campus")
+    .update({
+      title: title.value,
+      address_content: address_content.value,
+      life_content: life_content.value,
+      formations_content: formations_content.value,
+      hours_content: hours_content.value,
+      maps_embed_url: maps_embed_url.value || null
+    })
+    .eq("id", currentCampusId);
+
+  if (error) {
+    console.error(error);
+    alert("Erreur lors de la sauvegarde");
+    return;
+  }
+
+  alert("Campus mis à jour ✅");
+});
+
+/* ===============================
+   🚪 LOGOUT
+=============================== */
+document.getElementById("logout").addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  window.location.href = "index.html";
+});
+</script>
+
+</body>
+</html>
