@@ -2,21 +2,25 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 
   <!-- PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#b23a2c">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="BDE PSH">
+  <meta name="apple-mobile-web-app-title" content="Admin BDE PSH">
 
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="manifest-admin.json">
   <title>Admin BDE – Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../public/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
 </head>
 <body>
 
@@ -60,8 +64,8 @@
    🔐 SUPABASE
 =============================== */
 const supabaseClient = supabase.createClient(
-  'https://yswqdhoscahtylemhipt.supabase.co',
-  'sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf',
+  "https://yswqdhoscahtylemhipt.supabase.co",
+  "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
   { auth: { persistSession: true } }
 );
 
@@ -71,19 +75,22 @@ const supabaseClient = supabase.createClient(
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) {
-    window.location.href = 'index.html'; // page login admin
+    window.location.href = "index.html"; // page login admin
   }
 })();
 
 /* ===============================
    🚪 LOGOUT
 =============================== */
-document.getElementById('logout').addEventListener('click', async () => {
+document.getElementById("logout").addEventListener("click", async () => {
   await supabaseClient.auth.signOut();
-  window.location.href = 'index.html';
+  window.location.href = "index.html";
 });
 
-  if ("serviceWorker" in navigator) {
+/* ===============================
+   🔧 SERVICE WORKER ADMIN
+=============================== */
+if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw-admin.js")
     .then(reg => console.log("SW admin enregistré"))
     .catch(err => console.error("Erreur SW admin", err));
