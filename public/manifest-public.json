@@ -1,6 +1,6 @@
 {
   "name": "PSH SUP – Vie du campus",
-  "short_name": "PSH SUP",
+  "short_name": "BDE PSH SUP",
   "description": "Application officielle du BDE PSH SUP",
   "start_url": "/BDE-PSH-SUP/public/index.html",
   "scope": "/BDE-PSH-SUP/public/",
