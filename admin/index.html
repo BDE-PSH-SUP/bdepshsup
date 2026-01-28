@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin BDE PSH">
+
+  <link rel="manifest" href="manifest-admin.json">
+  <title>Connexion Admin – BDE PSH SUP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../public/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Connexion Admin</h1>
+  <p>Accès réservé BDE / Administration</p>
+</header>
+
+<main class="admin-grid">
+
+  <form id="loginForm" class="admin-form">
+    <label>Email</label>
+    <input type="email" id="email" required>
+
+    <label>Mot de passe</label>
+    <input type="password" id="password" required>
+
+    <button type="submit" class="btn-primary">🔐 Se connecter</button>
+  </form>
+
+</main>
+
+<script>
+/* ===============================
+   🔐 SUPABASE
+=============================== */
+const supabaseClient = supabase.createClient(
+  "https://yswqdhoscahtylemhipt.supabase.co",
+  "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
+  { auth: { persistSession: true } }
+);
+
+/* ===============================
+   🔁 AUTO REDIRECT
+=============================== */
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session) {
+    window.location.href = "admin-dashboard.html";
+  }
+})();
+
+/* ===============================
+   🔐 LOGIN
+=============================== */
+const form = document.getElementById("loginForm");
+const submitBtn = form.querySelector(".btn-primary");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  submitBtn.disabled = true;
+
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email: email.value.trim(),
+    password: password.value
+  });
+
+  submitBtn.disabled = false;
+
+  if (error) {
+    alert("❌ Identifiants incorrects");
+  } else {
+    window.location.href = "admin-dashboard.html";
+  }
+});
+</script>
+
+</body>
+</html>
