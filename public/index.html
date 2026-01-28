@@ -100,11 +100,13 @@ notifBtn.addEventListener("click", async () => {
   }
 });
 
-  if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw-public.js")
+ 
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/BDE-PSH-SUP/sw-public.js")
     .then(reg => console.log("SW public enregistré", reg))
     .catch(err => console.error("Erreur SW", err));
 }
+
 </script>
 
 </body>
