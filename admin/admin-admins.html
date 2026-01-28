@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin BDE PSH">
+
+  <link rel="manifest" href="manifest-admin.json">
+  <title>Admin – Gestion des admins</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="../public/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Admins</h1>
+  <p>Gestion des modérateurs</p>
+</header>
+
+<center>
+  <a href="admin-dashboard.html" class="btn-secondary">⬅ Retour dashboard</a>
+</center>
+
+<main class="admin-grid">
+
+  <!-- FORM -->
+  <form id="adminForm" class="admin-form">
+    <label>Email du modérateur</label>
+    <input type="email" id="email" required>
+
+    <button class="btn-primary">➕ Ajouter modérateur</button>
+
+    <p id="passwordBox" class="hidden"></p>
+  </form>
+
+  <!-- LIST -->
+  <section>
+    <h2>Modérateurs existants</h2>
+    <div id="adminList"></div>
+  </section>
+
+</main>
+
+<script>
+/* ===============================
+   🔐 SUPABASE
+=============================== */
+const supabaseClient = supabase.createClient(
+  "https://yswqdhoscahtylemhipt.supabase.co",
+  "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
+  { auth: { persistSession: true } }
+);
+
+let currentUserId = null;
+let currentUserRole = null;
+
+/* ===============================
+   🔒 AUTH + ROLE
+=============================== */
+(async () => {
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  if (!sessionData.session) {
+    location.href = "index.html";
+    return;
+  }
+
+  currentUserId = sessionData.session.user.id;
+
+  const { data, error } = await supabaseClient
+    .from("admins")
+    .select("role")
+    .eq("id", currentUserId)
+    .single();
+
+  if (error) {
+    alert("Accès admin refusé");
+    return;
+  }
+
+  currentUserRole = data.role;
+  loadAdmins();
+})();
+
+/* ===============================
+   📋 LOAD ADMINS
+=============================== */
+async function loadAdmins() {
+  const { data, error } = await supabaseClient
+    .from("admins")
+    .select("*")
+    .order("created_at");
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const list = document.getElementById("adminList");
+  list.innerHTML = "";
+
+  data.forEach(admin => {
+    const canDelete =
+      currentUserRole === "super" &&
+      admin.role !== "super" &&
+      admin.id !== currentUserId;
+
+    list.innerHTML += `
+      <div class="admin-actu-card">
+        <strong>${admin.email}</strong><br>
+        <small>Rôle : ${admin.role}</small>
+
+        ${
+          canDelete
+            ? `<button class="btn-edit" onclick="removeAdmin('${admin.id}')">🗑️ Supprimer</button>`
+            : ''
+        }
+      </div>
+    `;
+  });
+}
+
+/* ===============================
+   ➕ ADD ADMIN (MODERATOR PAR DÉFAUT)
+=============================== */
+document.getElementById("adminForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  const email = document.getElementById("email").value;
+
+  const { data: existing } = await supabaseClient
+    .from("admins")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (existing) {
+    alert("Cet utilisateur est déjà admin");
+    return;
+  }
+
+  alert(
+    "⚠️ L’utilisateur doit s’être connecté au moins une fois avant d’être ajouté comme admin."
+  );
+});
+
+/* ===============================
+   🗑️ DELETE ADMIN (SUPER ONLY)
+=============================== */
+async function removeAdmin(id) {
+  if (!confirm("Supprimer cet admin ?")) return;
+
+  const { error } = await supabaseClient
+    .from("admins")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Suppression impossible");
+    return;
+  }
+
+  loadAdmins();
+}
+</script>
+
+</body>
+</html>
