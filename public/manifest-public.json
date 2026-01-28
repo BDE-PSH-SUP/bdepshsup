@@ -2,20 +2,20 @@
   "name": "PSH SUP – Vie du campus",
   "short_name": "BDE PSH SUP",
   "description": "Application officielle du BDE PSH SUP",
-  "start_url": "/BDE-PSH-SUP/public/index.html",
-  "scope": "/BDE-PSH-SUP/public/",
+  "start_url": "/bdepshsup/public/index.html",
+  "scope": "/bdepshsup/public/",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#b23a2c",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/BDE-PSH-SUP/icons/icon-192.png",
+      "src": "/bdepshsup/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/BDE-PSH-SUP/icons/icon-512.png",
+      "src": "/bdepshsup/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
