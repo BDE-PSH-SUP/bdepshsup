@@ -757,3 +757,31 @@ body {
     transform: translateY(0);
   }
 }
+/* =========================
+   🔔 BOUTON NOTIFICATIONS
+========================= */
+.notif-bar {
+  display: flex;
+  justify-content: center;
+  margin: 0.8rem 0 0.2rem;
+}
+
+.btn-notif {
+  background: #fff;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
+}
+
+.btn-notif:hover {
+  background: var(--primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
