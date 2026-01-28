@@ -2,7 +2,7 @@
   "name": "PSH SUP – Admin BDE",
   "short_name": "Admin BDE",
   "description": "Interface d’administration du BDE PSH SUP",
-  "start_url": "/bdepshsup/admin/admin.html",
+  "start_url": "/bdepshsup/admin/admin-dashboard.html",
   "scope": "/bdepshsup/admin/",
   "display": "standalone",
   "background_color": "#f5f5f5",
