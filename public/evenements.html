@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BDE PSH">
+  <meta name="color-scheme" content="light dark">
+
+  <link rel="manifest" href="manifest-public.json">
+
+  <title>BDE PSH SUP – Événements</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Événements</h1>
+  <p>La vie étudiante, les temps forts du campus</p>
+</header>
+
+<main class="events-grid" id="eventsContainer">
+  <!-- événements chargés dynamiquement -->
+</main>
+
+<!-- NAVIGATION BAS -->
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">
+    <span>🏠</span><small>Accueil</small>
+  </a>
+  <a href="actus.html" class="nav-item">
+    <span>📰</span><small>Actus</small>
+  </a>
+  <a href="campus.html" class="nav-item">
+    <span>🏫</span><small>Campus</small>
+  </a>
+  <a href="bde.html" class="nav-item">
+    <span>🎉</span><small>BDE</small>
+  </a>
+</nav>
+
+<!-- LIGHTBOX IMAGE -->
+<div id="lightbox" class="lightbox" style="display:none;">
+  <span class="lightbox-close">✕</span>
+  <img id="lightboxImage">
+</div>
+
+<!-- CONTACT -->
+<button id="contactBde" class="btn-contact-floating">✉️</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE (PUBLIC)
+=============================== */
+const supabaseUrl = 'https://yswqdhoscahtylemhipt.supabase.co';
+const supabaseKey = 'TA_CLE_ANON';
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ===============================
+   📅 LOAD EVENTS
+=============================== */
+async function loadEvents() {
+  const today = new Date().toISOString().split('T')[0];
+
+  const { data, error } = await supabaseClient
+    .from('evenements')
+    .select('*')
+    .eq('published', true)
+    .order('event_date');
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const container = document.getElementById('eventsContainer');
+  container.innerHTML = '';
+
+  data.forEach(ev => {
+    const isPast = ev.event_date < today;
+
+    container.innerHTML += `
+      <article class="event-card ${isPast ? 'past' : ''}">
+        ${ev.image_url ? `
+          <img src="${ev.image_url}" class="event-image clickable-image" loading="lazy">
+        ` : ''}
+
+        <div class="event-body">
+          <h2>${ev.title}</h2>
+          <p class="event-meta">
+            📅 ${formatDate(ev.event_date)}
+            ${ev.event_time ? ' • 🕒 ' + ev.event_time : ''}
+            <br>📍 ${ev.location}
+          </p>
+          <p>${ev.description}</p>
+          <span class="event-status ${isPast ? 'past' : 'upcoming'}">
+            ${isPast ? 'Événement passé' : 'À venir'}
+          </span>
+        </div>
+      </article>
+    `;
+  });
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
+}
+
+/* ===============================
+   🖼️ LIGHTBOX
+=============================== */
+const lightbox = document.getElementById('lightbox');
+const lightboxImage = document.getElementById('lightboxImage');
+
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('clickable-image')) {
+    lightboxImage.src = e.target.src;
+    lightbox.style.display = 'flex';
+  }
+});
+
+document.querySelector('.lightbox-close').onclick = closeLightbox;
+lightbox.onclick = e => e.target === lightbox && closeLightbox();
+
+function closeLightbox() {
+  lightbox.style.display = 'none';
+  lightboxImage.src = '';
+}
+
+/* ===============================
+   🚀 INIT
+=============================== */
+loadEvents();
+
+/* ===============================
+   📋 CONTACT
+=============================== */
+document.getElementById('contactBde').onclick = () => {
+  location.href = 'contact-bde.html';
+};
+
+/* ===============================
+   🔧 SERVICE WORKER
+=============================== */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw-public.js")
+    .then(reg => console.log("SW public enregistré"))
+    .catch(err => console.error("Erreur SW", err));
+}
+</script>
+
+</body>
+</html>
