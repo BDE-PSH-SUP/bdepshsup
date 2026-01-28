@@ -1,0 +1,21 @@
+{
+  "name": "Admin BDE PSH",
+  "short_name": "Admin BDE",
+  "start_url": "/bdepshsup/admin/admin-dashboard.html",
+  "scope": "/bdepshsup/admin/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#b23a2c",
+  "icons": [
+    {
+      "src": "/bdepshsup/icons/admin/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/bdepshsup/icons/admin/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
