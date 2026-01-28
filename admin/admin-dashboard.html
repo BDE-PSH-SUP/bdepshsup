@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BDE PSH">
+
+  <link rel="manifest" href="/manifest.json">
+  <title>Admin BDE – Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<header class="header">
+  <h1>Dashboard Admin</h1>
+  <p>Gestion du site BDE</p>
+</header>
+
+<main class="admin-dashboard">
+
+  <a href="admin-evenements.html" class="admin-card">
+    <span class="icon">📅</span>
+    <h2>Événements</h2>
+    <p>Créer, modifier et gérer les événements</p>
+  </a>
+
+  <a href="admin-actus.html" class="admin-card">
+    <span class="icon">📰</span>
+    <h2>Actualités</h2>
+    <p>Publier et modifier les actus</p>
+  </a>
+
+  <a href="admin-campus.html" class="admin-card">
+    <span class="icon">🏫</span>
+    <h2>Campus</h2>
+    <p>Infos pratiques et vie étudiante</p>
+  </a>
+
+  <a href="admin-bde.html" class="admin-card">
+    <span class="icon">🎉</span>
+    <h2>BDE</h2>
+    <p>Présentation, membres, missions</p>
+  </a>
+
+</main>
+
+<button id="logout" class="btn-logout-floating">🚪</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE
+=============================== */
+const supabaseClient = supabase.createClient(
+  'https://yswqdhoscahtylemhipt.supabase.co',
+  'sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf',
+  { auth: { persistSession: true } }
+);
+
+/* ===============================
+   🔒 PROTECTION ADMIN
+=============================== */
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) {
+    window.location.href = 'index.html'; // page login admin
+  }
+})();
+
+/* ===============================
+   🚪 LOGOUT
+=============================== */
+document.getElementById('logout').addEventListener('click', async () => {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'index.html';
+});
+</script>
+
+</body>
+</html>
