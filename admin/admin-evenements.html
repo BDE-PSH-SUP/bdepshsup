@@ -260,15 +260,17 @@ window.editEvent = async function(id) {
   document.getElementById("cancelEdit").style.display = "block";
 };
 
-function escapeHtml(str = "") {
+function escapeHtml(str) {
+  if (!str) return '';
   return str.replace(/[&<>"']/g, m => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
   })[m]);
 }
+
 
 /* ===============================
    🗑️ DELETE EVENT
