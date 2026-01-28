@@ -11,17 +11,18 @@
   <meta name="apple-mobile-web-app-title" content="BDE PSH">
 
   <link rel="manifest" href="manifest-public.json">
-
   <title>BDE PSH SUP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- CSS -->
   <link rel="stylesheet" href="../style.css">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Icons -->
-  <link rel="apple-touch-icon" href="/BDE-PSH-SUP/icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/BDE-PSH-SUP/icons/icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="/BDE-PSH-SUP/icons/icon-512.png">
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/icon-512.png">
 </head>
 <body>
 
@@ -58,7 +59,7 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
    📲 SERVICE WORKER
 =============================== */
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/BDE-PSH-SUP/sw-public.js")
+  navigator.serviceWorker.register("sw-public.js")
     .then(reg => console.log("SW public enregistré", reg))
     .catch(err => console.error("Erreur SW", err));
 }
@@ -88,11 +89,6 @@ installBtn.addEventListener("click", async () => {
 const notifBtn = document.getElementById("notifBtn");
 
 notifBtn.addEventListener("click", async () => {
-  if (!("serviceWorker" in navigator)) {
-    alert("Service Worker non supporté");
-    return;
-  }
-
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
     alert("Notifications refusées ❌");
