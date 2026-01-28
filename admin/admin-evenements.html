@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin BDE PSH">
+
+  <link rel="manifest" href="manifest-admin.json">
+  <title>Admin – Événements</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../public/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Admin – Événements</h1>
+  <p>Gestion des événements BDE</p>
+</header>
+
+<center>
+  <a href="admin-dashboard.html" class="btn-secondary">⬅ Retour dashboard</a>
+</center>
+
+<main class="admin-grid">
+
+  <form id="eventForm" class="admin-form">
+    <label>Titre</label>
+    <input type="text" id="title" required>
+
+    <label>Date</label>
+    <input type="date" id="event_date" required>
+
+    <label>Heure</label>
+    <input type="time" id="event_time">
+
+    <label>Lieu</label>
+    <input type="text" id="event_location" required>
+
+    <label>Description</label>
+    <textarea id="description" rows="4" required></textarea>
+
+    <label>Lien d’inscription</label>
+    <input type="url" id="helloasso_url" placeholder="https://www.helloasso.com/...">
+
+    <label>Image (optionnelle)</label>
+    <input type="file" id="image" accept="image/*">
+
+    <img id="imagePreview" class="image-preview" style="display:none;">
+
+    <button type="button" id="deleteImageBtn" class="btn-secondary" style="display:none;">
+      🗑️ Supprimer l’image
+    </button>
+
+    <button type="submit" class="btn-primary">📅 Publier</button>
+  </form>
+
+  <button type="button" id="cancelEdit" class="btn-secondary" style="display:none;">
+    ❌ Annuler modification
+  </button>
+
+  <section class="admin-list">
+    <h2>Événements publiés</h2>
+    <div id="eventsList"></div>
+  </section>
+
+</main>
+
+<button id="logout" class="btn-logout-floating">🚪</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE
+=============================== */
+const supabaseClient = supabase.createClient(
+  "https://yswqdhoscahtylemhipt.supabase.co",
+  "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
+  { auth: { persistSession: true } }
+);
+
+/* ===============================
+   🔒 PROTECTION
+=============================== */
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) location.href = "index.html";
+})();
+
+/* ===============================
+   🧠 ÉTAT
+=============================== */
+let editingEventId = null;
+let imageDeleted = false;
+
+/* ===============================
+   🖼️ PREVIEW IMAGE
+=============================== */
+const imageInput = document.getElementById("image");
+const imagePreview = document.getElementById("imagePreview");
+const deleteImageBtn = document.getElementById("deleteImageBtn");
+
+imageInput.addEventListener("change", () => {
+  const file = imageInput.files[0];
+  if (!file) return;
+  imagePreview.src = URL.createObjectURL(file);
+  imagePreview.style.display = "block";
+});
+
+/* ===============================
+   ☁️ UPLOAD IMAGE
+=============================== */
+async function uploadEventImage(file) {
+  const ext = file.name.split(".").pop();
+  const fileName = `${Date.now()}.${ext}`;
+  const filePath = `events/${fileName}`;
+
+  const { error } = await supabaseClient.storage
+    .from("evenements")
+    .upload(filePath, file);
+
+  if (error) return null;
+
+  return supabaseClient.storage
+    .from("evenements")
+    .getPublicUrl(filePath).data.publicUrl;
+}
+
+/* ===============================
+   🗑️ DELETE IMAGE STORAGE
+=============================== */
+async function deleteEventImage(imageUrl) {
+  if (!imageUrl) return;
+  const path = imageUrl.split("/storage/v1/object/public/evenements/")[1];
+  if (!path) return;
+
+  await supabaseClient.storage
+    .from("evenements")
+    .remove([`events/${path}`]);
+}
+
+/* ===============================
+   📢 SUBMIT EVENT
+=============================== */
+document.getElementById("eventForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  let imageUrl = null;
+
+  if (imageInput.files.length > 0) {
+    imageUrl = await uploadEventImage(imageInput.files[0]);
+  } else if (editingEventId && !imageDeleted) {
+    const { data } = await supabaseClient
+      .from("evenements")
+      .select("image_url")
+      .eq("id", editingEventId)
+      .single();
+    imageUrl = data.image_url;
+  }
+
+  const event = {
+    title: title.value,
+    description: description.value,
+    event_date: event_date.value,
+    event_time: event_time.value || null,
+    location: event_location.value,
+    image_url: imageUrl,
+    helloasso_url: helloasso_url.value || null
+  };
+
+  const query = editingEventId
+    ? supabaseClient.from("evenements").update(event).eq("id", editingEventId)
+    : supabaseClient.from("evenements").insert({ ...event, published: true });
+
+  const { error } = await query;
+  if (error) return alert("Erreur lors de l’enregistrement");
+
+  resetForm();
+  loadEvents();
+});
+
+/* ===============================
+   📋 LOAD EVENTS
+=============================== */
+async function loadEvents() {
+  const { data, error } = await supabaseClient
+    .from("evenements")
+    .select("*")
+    .order("event_date", { ascending: true });
+
+  if (error || !data) return;
+
+  const container = document.getElementById("eventsList");
+  container.innerHTML = "";
+
+  data.forEach(ev => {
+    container.innerHTML += `
+      <div class="admin-actu-card">
+        <h3>${escapeHtml(ev.title)}</h3>
+        <small>
+          📅 ${new Date(ev.event_date).toLocaleDateString("fr-FR")}
+          ${ev.event_time ? "🕒 " + ev.event_time : ""}
+          <br>📍 ${escapeHtml(ev.location)}
+        </small>
+
+        ${ev.helloasso_url ? `
+          <a href="${ev.helloasso_url}" target="_blank" class="btn-primary">
+            🎟️ S’inscrire
+          </a>
+        ` : ""}
+
+        <div class="admin-actions">
+          <button onclick="editEvent('${ev.id}')">✏️</button>
+          <button onclick="deleteEvent('${ev.id}')">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+}
+loadEvents();
+
+/* ===============================
+   ✏️ EDIT EVENT
+=============================== */
+window.editEvent = async function(id) {
+  const { data } = await supabaseClient
+    .from("evenements")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  title.value = data.title;
+  description.value = data.description;
+  event_date.value = data.event_date;
+  event_time.value = data.event_time || "";
+  event_location.value = data.location;
+  helloasso_url.value = data.helloasso_url || "";
+
+  editingEventId = id;
+  imageDeleted = false;
+
+  if (data.image_url) {
+    imagePreview.src = data.image_url;
+    imagePreview.style.display = "block";
+    deleteImageBtn.style.display = "block";
+  }
+
+  document.querySelector(".btn-primary").textContent = "💾 Mettre à jour";
+  document.getElementById("cancelEdit").style.display = "block";
+};
+
+function escapeHtml(str = "") {
+  return str.replace(/[&<>"']/g, m => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[m]);
+}
+
+/* ===============================
+   🗑️ DELETE EVENT
+=============================== */
+window.deleteEvent = async function(id) {
+  if (!confirm("Supprimer cet événement ?")) return;
+
+  const { data } = await supabaseClient
+    .from("evenements")
+    .select("image_url")
+    .eq("id", id)
+    .single();
+
+  await deleteEventImage(data.image_url);
+  await supabaseClient.from("evenements").delete().eq("id", id);
+
+  loadEvents();
+};
+
+/* ===============================
+   🗑️ DELETE IMAGE
+=============================== */
+deleteImageBtn.addEventListener("click", async () => {
+  if (!editingEventId) return;
+
+  const { data } = await supabaseClient
+    .from("evenements")
+    .select("image_url")
+    .eq("id", editingEventId)
+    .single();
+
+  await deleteEventImage(data.image_url);
+  await supabaseClient
+    .from("evenements")
+    .update({ image_url: null })
+    .eq("id", editingEventId);
+
+  imagePreview.style.display = "none";
+  deleteImageBtn.style.display = "none";
+  imageInput.value = "";
+  imageDeleted = true;
+});
+
+/* ===============================
+   ❌ RESET FORM
+=============================== */
+function resetForm() {
+  eventForm.reset();
+  editingEventId = null;
+  imageDeleted = false;
+  imagePreview.style.display = "none";
+  deleteImageBtn.style.display = "none";
+  cancelEdit.style.display = "none";
+  document.querySelector(".btn-primary").textContent = "📅 Publier";
+}
+
+/* ===============================
+   🚪 LOGOUT
+=============================== */
+document.getElementById("logout").addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  window.location.href = "index.html";
+});
+</script>
+
+</body>
+</html>
