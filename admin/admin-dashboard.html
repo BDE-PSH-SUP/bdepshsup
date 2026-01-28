@@ -14,6 +14,7 @@
   <title>Admin BDE – Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- CSS -->
   <link rel="stylesheet" href="../public/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -55,13 +56,12 @@
     <p>Présentation, membres, missions</p>
   </a>
 
-    <!-- 📲 Installer l’app admin -->
+  <!-- 📲 Installer l’app admin -->
   <button id="installBtn" class="admin-card hidden">
     <span class="icon">📲</span>
     <h2>Installer l’app admin</h2>
     <p>Installer le dashboard admin sur l’appareil</p>
   </button>
-
 
 </main>
 
@@ -83,26 +83,9 @@ const supabaseClient = supabase.createClient(
 (async () => {
   const { data } = await supabaseClient.auth.getSession();
   if (!data.session) {
-    window.location.href = "index.html"; // page login admin
+    window.location.href = "index.html";
   }
 })();
-
-/* ===============================
-   🚪 LOGOUT
-=============================== */
-document.getElementById("logout").addEventListener("click", async () => {
-  await supabaseClient.auth.signOut();
-  window.location.href = "index.html";
-});
-
-/* ===============================
-   🔧 SERVICE WORKER ADMIN
-=============================== */
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw-admin.js")
-    .then(reg => console.log("SW admin enregistré"))
-    .catch(err => console.error("Erreur SW admin", err));
-}
 
 /* ===============================
    📲 INSTALL PWA ADMIN
@@ -124,6 +107,22 @@ installBtn.addEventListener("click", async () => {
   installBtn.classList.add("hidden");
 });
 
+/* ===============================
+   🚪 LOGOUT
+=============================== */
+document.getElementById("logout").addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  window.location.href = "index.html";
+});
+
+/* ===============================
+   🔧 SERVICE WORKER ADMIN
+=============================== */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw-admin.js")
+    .then(reg => console.log("SW admin enregistré"))
+    .catch(err => console.error("Erreur SW admin", err));
+}
 </script>
 
 </body>
