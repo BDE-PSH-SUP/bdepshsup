@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Admin BDE PSH">
+  <meta name="color-scheme" content="light dark">
+
+  <link rel="manifest" href="manifest-admin.json">
+  <title>Admin – Actualités</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../public/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/admin/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/admin/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Admin – Actualités</h1>
+  <p>Publication des actus BDE</p>
+</header>
+
+<center>
+  <a href="admin-dashboard.html" class="btn-secondary">⬅ Retour dashboard</a>
+</center>
+
+<main class="admin-grid">
+
+  <form id="actuForm" class="admin-form">
+    <label>Titre</label>
+    <input type="text" id="title" required>
+
+    <label>Catégorie</label>
+    <select id="category">
+      <option>Événement</option>
+      <option>Info campus</option>
+      <option>Vie étudiante</option>
+    </select>
+
+    <label>Résumé</label>
+    <textarea id="summary" rows="2" required></textarea>
+
+    <label>Contenu</label>
+    <textarea id="content" rows="4" required></textarea>
+
+    <label>Image (optionnelle)</label>
+    <input type="file" id="image" accept="image/*">
+    <img id="imagePreview" class="image-preview" style="display:none;">
+    <button type="button" id="deleteImageBtn" class="btn-secondary" style="display:none;">
+      🗑️ Supprimer l’image
+    </button>
+
+    <button type="submit" class="btn-primary">📢 Publier</button>
+  </form>
+
+  <button type="button" id="cancelEdit" class="btn-secondary" style="display:none;">
+    ❌ Annuler modification
+  </button>
+
+  <section class="admin-list">
+    <h2>Actus publiées</h2>
+    <div id="adminActusList"></div>
+  </section>
+
+</main>
+
+<button id="logout" class="btn-logout-floating">🚪</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE
+=============================== */
+const supabaseClient = supabase.createClient(
+  "https://yswqdhoscahtylemhipt.supabase.co",
+  "sb_publishable_aU9yS4K5HzDpqB9M5u1vuw_FVTwz9sf",
+  { auth: { persistSession: true } }
+);
+
+/* ===============================
+   🔒 PROTECTION ADMIN
+=============================== */
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (!data.session) location.href = "index.html";
+})();
+
+/* ===============================
+   🧠 STATE
+=============================== */
+let editingActuId = null;
+let imageDeleted = false;
+
+/* ===============================
+   🖼️ IMAGE PREVIEW
+=============================== */
+const imageInput = document.getElementById("image");
+const imagePreview = document.getElementById("imagePreview");
+const deleteImageBtn = document.getElementById("deleteImageBtn");
+
+imageInput.addEventListener("change", () => {
+  const file = imageInput.files[0];
+  if (!file) return;
+  imagePreview.src = URL.createObjectURL(file);
+  imagePreview.style.display = "block";
+});
+
+/* ===============================
+   ☁️ UPLOAD IMAGE
+=============================== */
+async function uploadImage(file) {
+  const ext = file.name.split(".").pop();
+  const fileName = `${Date.now()}.${ext}`;
+  const filePath = `actus/${fileName}`;
+
+  const { error } = await supabaseClient.storage
+    .from("actus")
+    .upload(filePath, file);
+
+  if (error) return null;
+
+  return supabaseClient.storage
+    .from("actus")
+    .getPublicUrl(filePath).data.publicUrl;
+}
+
+/* ===============================
+   🗑️ DELETE IMAGE STORAGE
+=============================== */
+async function deleteImageFromStorage(imageUrl) {
+  if (!imageUrl) return;
+  const path = imageUrl.split("/storage/v1/object/public/actus/")[1];
+  if (!path) return;
+
+  await supabaseClient.storage.from("actus").remove([`actus/${path}`]);
+}
+
+/* ===============================
+   📢 SUBMIT ACTU
+=============================== */
+document.getElementById("actuForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  let imageUrl = null;
+
+  if (imageInput.files.length > 0) {
+    imageUrl = await uploadImage(imageInput.files[0]);
+  } else if (editingActuId && !imageDeleted) {
+    const { data } = await supabaseClient
+      .from("actus")
+      .select("image_url")
+      .eq("id", editingActuId)
+      .single();
+    imageUrl = data.image_url;
+  }
+
+  const actu = {
+    title: title.value,
+    category: category.value,
+    summary: summary.value,
+    content: content.value,
+    image_url: imageUrl
+  };
+
+  const query = editingActuId
+    ? supabaseClient.from("actus").update(actu).eq("id", editingActuId)
+    : supabaseClient.from("actus").insert({ ...actu, published: true });
+
+  const { error } = await query;
+  if (error) return alert("Erreur lors de l’enregistrement");
+
+  resetForm();
+  loadAdminActus();
+});
+
+/* ===============================
+   📋 LOAD ACTUS
+=============================== */
+async function loadAdminActus() {
+  const { data } = await supabaseClient
+    .from("actus")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  const container = document.getElementById("adminActusList");
+  container.innerHTML = "";
+
+  data.forEach(actu => {
+    container.innerHTML += `
+      <div class="admin-actu-card" data-id="${actu.id}">
+        <h3>${actu.title}</h3>
+        <small>${actu.category}</small>
+        <div class="admin-actions">
+          <button onclick="editActu('${actu.id}')">✏️</button>
+          <button onclick="deleteActu('${actu.id}')">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+}
+loadAdminActus();
+
+/* ===============================
+   ✏️ EDIT ACTU
+=============================== */
+window.editActu = async function(id) {
+  const { data } = await supabaseClient
+    .from("actus")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  title.value = data.title;
+  category.value = data.category;
+  summary.value = data.summary;
+  content.value = data.content;
+
+  editingActuId = id;
+  imageDeleted = false;
+
+  if (data.image_url) {
+    imagePreview.src = data.image_url;
+    imagePreview.style.display = "block";
+    deleteImageBtn.style.display = "block";
+  }
+
+  document.getElementById("cancelEdit").style.display = "block";
+  document.querySelector(".btn-primary").textContent = "💾 Mettre à jour";
+};
+
+/* ===============================
+   🗑️ DELETE ACTU
+=============================== */
+window.deleteActu = async function(id) {
+  if (!confirm("Supprimer cette actu ?")) return;
+
+  const { data } = await supabaseClient
+    .from("actus")
+    .select("image_url")
+    .eq("id", id)
+    .single();
+
+  await deleteImageFromStorage(data.image_url);
+  await supabaseClient.from("actus").delete().eq("id", id);
+
+  loadAdminActus();
+};
+
+/* ===============================
+   ❌ RESET FORM
+=============================== */
+function resetForm() {
+  actuForm.reset();
+  editingActuId = null;
+  imageDeleted = false;
+  imagePreview.style.display = "none";
+  deleteImageBtn.style.display = "none";
+  cancelEdit.style.display = "none";
+  document.querySelector(".btn-primary").textContent = "📢 Publier";
+}
+
+/* ===============================
+   🚪 LOGOUT
+=============================== */
+logout.addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  location.href = "index.html";
+});
+</script>
+
+</body>
+</html>
