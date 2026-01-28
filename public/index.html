@@ -11,11 +11,12 @@
   <meta name="apple-mobile-web-app-title" content="BDE PSH">
 
   <link rel="manifest" href="manifest-public.json">
-  <title>BDE PSH SUP</title>
+
+  <title>BDE PSH SUP – Accueil</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- CSS -->
-  <link rel="stylesheet" href="/BDE-PSH-SUP/public/style.css">
+  <link rel="stylesheet" href="style.css">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -28,26 +29,77 @@
 
 <header class="header">
   <h1>BDE PSH SUP</h1>
-  <p>Actualités & événements étudiants</p>
+  <p>La vie étudiante du campus</p>
 </header>
 
-<main class="admin-grid">
+<main class="page">
+  <div class="grid">
 
-  <button id="installBtn" class="btn-primary hidden">
-    📲 Installer l’application
-  </button>
+    <a href="actus.html" class="card" aria-label="Voir les actualités">
+      <span>📰</span>
+      <h2>Actualités</h2>
+    </a>
 
-  <button id="notifBtn" class="btn-primary">
-    🔔 Activer les notifications
-  </button>
+    <a href="evenements.html" class="card" aria-label="Voir les événements">
+      <span>📅</span>
+      <h2>Événements</h2>
+    </a>
 
+    <a href="campus.html" class="card" aria-label="Informations campus">
+      <span>🏫</span>
+      <h2>Les Campus</h2>
+    </a>
+
+    <a href="bde.html" class="card" aria-label="Présentation du BDE">
+      <span>🎉</span>
+      <h2>Votre BDE</h2>
+    </a>
+
+    <!-- 🔔 Notifications -->
+    <button id="notifBtn" class="card">
+      <span>🔔</span>
+      <h2>Notifications</h2>
+    </button>
+
+    <!-- 📲 Installer -->
+    <button id="installBtn" class="card hidden">
+      <span>📲</span>
+      <h2>Installer l’app</h2>
+    </button>
+
+  </div>
 </main>
 
 <footer class="footer">
-  <p>BDE PSH SUP ©</p>
+  © PSH SUP – Bureau des Étudiants – 2026
 </footer>
 
+<nav class="bottom-nav">
+  <a href="actus.html" class="nav-item">
+    <span>📰</span><small>Actus</small>
+  </a>
+  <a href="evenements.html" class="nav-item">
+    <span>📅</span><small>Events</small>
+  </a>
+  <a href="campus.html" class="nav-item">
+    <span>🏫</span><small>Campus</small>
+  </a>
+  <a href="bde.html" class="nav-item">
+    <span>🎉</span><small>BDE</small>
+  </a>
+</nav>
+
+<!-- Bouton contact flottant -->
+<button id="contactBde" class="btn-contact-floating">✉️</button>
+
 <script>
+/* ===============================
+   📋 CONTACT
+=============================== */
+document.getElementById('contactBde').addEventListener('click', () => {
+  window.location.href = 'contact-bde.html';
+});
+
 /* ===============================
    🔗 SUPABASE
 =============================== */
@@ -56,7 +108,7 @@ const supabaseKey = "TA_CLE_ANON";
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 /* ===============================
-   📲 SERVICE WORKER
+   🔧 SERVICE WORKER
 =============================== */
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("sw-public.js")
