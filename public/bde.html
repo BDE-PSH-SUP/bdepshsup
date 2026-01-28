@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#b23a2c">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BDE PSH">
+
+  <link rel="manifest" href="manifest-public.json">
+
+  <title>BDE PSH SUP – Votre BDE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="../icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="../icons/icon-512.png">
+</head>
+<body>
+
+<header class="header">
+  <h1>Votre BDE</h1>
+  <p>Une équipe étudiante en charge de la vie du campus</p>
+</header>
+
+<main>
+
+  <section class="bde-section">
+    <h2 class="bde-section-title">Le Bureau</h2>
+    <div class="bde-grid" id="bureauGrid"></div>
+  </section>
+
+  <section class="bde-section">
+    <h2 class="bde-section-title">Membres actifs</h2>
+    <div class="bde-grid" id="membresGrid"></div>
+  </section>
+
+</main>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-item">
+    <span>🏠</span><small>Accueil</small>
+  </a>
+  <a href="actus.html" class="nav-item">
+    <span>📰</span><small>Actus</small>
+  </a>
+  <a href="evenements.html" class="nav-item">
+    <span>📅</span><small>Events</small>
+  </a>
+  <a href="campus.html" class="nav-item">
+    <span>🏫</span><small>Campus</small>
+  </a>
+</nav>
+
+<button id="contactBde" class="btn-contact-floating">✉️</button>
+
+<script>
+/* ===============================
+   🔐 SUPABASE – PUBLIC READ
+=============================== */
+const supabaseUrl = 'https://yswqdhoscahtylemhipt.supabase.co';
+const supabaseKey = 'TA_CLE_ANON';
+
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ===============================
+   🛡️ XSS PROTECTION
+=============================== */
+function escapeHtml(str = '') {
+  return str.replace(/[&<>"']/g, m => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[m]);
+}
+
+/* ===============================
+   📋 LOAD BDE
+=============================== */
+async function loadBDE() {
+  const { data, error } = await supabaseClient
+    .from('bde')
+    .select('*')
+    .order('order_index');
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const bureauGrid = document.getElementById('bureauGrid');
+  const membresGrid = document.getElementById('membresGrid');
+
+  bureauGrid.innerHTML = '';
+  membresGrid.innerHTML = '';
+
+  data.forEach(member => {
+    const card = `
+      <div class="card bde-card">
+        ${member.photo_url ? `
+          <img
+            src="${member.photo_url}"
+            alt="${escapeHtml(member.prenom)} ${escapeHtml(member.nom)}"
+            class="bde-photo"
+            loading="lazy">
+        ` : ''}
+
+        <span class="role-emoji highlight">${escapeHtml(member.emoji || '')}</span>
+
+        <h2>${escapeHtml(member.role)}</h2>
+
+        <p>
+          <strong>${escapeHtml(member.prenom)} ${escapeHtml(member.nom)}</strong><br>
+          ${escapeHtml(member.classe || '')}
+        </p>
+      </div>
+    `;
+
+    const bureauRoles = [
+      'Président',
+      'Présidente',
+      'Vice-président',
+      'Vice-présidente',
+      'Trésorier',
+      'Trésorière',
+      'Secrétaire'
+    ];
+
+    if (bureauRoles.includes(member.role)) {
+      bureauGrid.innerHTML += card;
+    } else {
+      membresGrid.innerHTML += card;
+    }
+  });
+
+  /* UX fallback */
+  if (!bureauGrid.innerHTML) {
+    bureauGrid.innerHTML = '<p class="empty">Bureau en cours de constitution</p>';
+  }
+  if (!membresGrid.innerHTML) {
+    membresGrid.innerHTML = '<p class="empty">Aucun membre actif pour le moment</p>';
+  }
+}
+
+loadBDE();
+
+/* ===============================
+   📋 CONTACT
+=============================== */
+document.getElementById('contactBde').addEventListener('click', () => {
+  window.location.href = 'contact-bde.html';
+});
+
+/* ===============================
+   🔧 SERVICE WORKER
+=============================== */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw-public.js")
+    .then(reg => console.log("SW public enregistré"))
+    .catch(err => console.error("Erreur SW", err));
+}
+</script>
+
+</body>
+</html>
