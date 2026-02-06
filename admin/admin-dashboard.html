@@ -88,6 +88,13 @@ const supabaseClient = supabase.createClient(
   }
 })();
 
+  document.getElementById("btnBdePublic").addEventListener("click", () => {
+  window.open(
+    "https://bde-psh-sup.github.io/bdepshsup/public/index.html",
+    "_blank"
+  );
+});
+
 /* ===============================
    📲 INSTALL PWA ADMIN
 =============================== */
