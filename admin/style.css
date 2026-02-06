@@ -769,3 +769,39 @@ body {
 .btn-bde-public:hover {
   background: #d97706;
 }
+
+
+/* =========================
+   BASE BOUTONS FLOTTANTS
+========================= */
+
+.btn-floating {
+  position: fixed;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 400;
+}
+
+.btn-floating:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+}
+
+/* Bouton BDE */
+.btn-bde-public {
+  bottom: 140px;
+  background: #f59e0b;
+}
+
+.btn-bde-public:hover {
+  background: #d97706;
+}
+
