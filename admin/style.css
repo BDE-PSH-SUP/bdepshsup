@@ -757,3 +757,15 @@ body {
     transform: translateY(0);
   }
 }
+/* =========================
+   BOUTON APP BDE ADMIN
+========================= */
+
+.btn-bde-public {
+  bottom: 140px; /* au-dessus logout si présent */
+  background: #f59e0b;
+}
+
+.btn-bde-public:hover {
+  background: #d97706;
+}
